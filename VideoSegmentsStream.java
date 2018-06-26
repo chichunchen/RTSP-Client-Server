@@ -76,4 +76,12 @@ public class VideoSegmentsStream {
         currentSegment++;
         currentFileInputStream = fileInputStreamVector.get(currentSegment);
     }
+
+    /**
+     * Get current segment number
+     * @return current segment number
+     */
+    public int getCurrentSegment() {
+        return currentSegment;
+    }
 }

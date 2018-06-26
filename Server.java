@@ -28,7 +28,7 @@ public class Server extends JFrame implements ActionListener {
 
     //GUI:
     //----------------
-    private JLabel label;
+    private JLabel framesegLabel;
 
     //Video variables:
     //----------------
@@ -115,8 +115,8 @@ public class Server extends JFrame implements ActionListener {
         rtcpReceiver = new RtcpReceiver(RTCP_PERIOD);
 
         //GUI:
-        label = new JLabel("Send frame #        ", JLabel.CENTER);
-        getContentPane().add(label, BorderLayout.CENTER);
+        framesegLabel = new JLabel("Send frame #        , Segment #", JLabel.CENTER);
+        getContentPane().add(framesegLabel, BorderLayout.CENTER);
 
         //Video encoding and quality
         imgTranslator = new ImageTranslator(0.8f);
@@ -271,7 +271,7 @@ public class Server extends JFrame implements ActionListener {
                     rtp_packet.printheader();
 
                     //update GUI
-                    label.setText("Send frame #" + imagenb);
+                    framesegLabel.setText("Send frame #" + imagenb + ", Segment #" + segmentsStream.getCurrentSegment());
                 }
                 catch (NumberFormatException nfe) {
                     System.err.println("The video frame should have 5 bytes of length prepended: "+ nfe);
