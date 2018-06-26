@@ -20,7 +20,7 @@ public class Server extends JFrame implements ActionListener {
     //RTP variables:
     //----------------
     private DatagramSocket RTPsocket; //socket to be used to send and receive UDP packets
-    private DatagramPacket senddp; //UDP packet containing the video frames
+    private DatagramPacket senddp; //UDP packet containing the segmentsStream frames
 
     private InetAddress ClientIPAddr;   //Client IP address
     private int RTP_dest_port = 0;      //destination port for RTP packets  (given by the RTSP Client)
@@ -33,15 +33,16 @@ public class Server extends JFrame implements ActionListener {
     //Video variables:
     //----------------
     private int imagenb = 0; //image nb of the image currently transmitted
-    private VideoStream video; //VideoStream object used to access video frames
-    private static int MJPEG_TYPE = 26; //RTP payload type for MJPEG video
-    private static int FRAME_PERIOD = 20; //Frame period of the video to stream, in ms
-    private static int VIDEO_LENGTH = 500; //length of the video in frames
+    private VideoSegmentsStream segmentsStream; //VideoSegmentsStream object used to access segmentsStream frames
+    private static int MJPEG_TYPE = 26; //RTP payload type for MJPEG segmentsStream
+    private static int FRAME_PERIOD = 20; //Frame period of the segmentsStream to stream, in ms
+    // TODO the video length should be a vector (or vector of vector) that stores all the length metadata for all the video segments.
+    private static int VIDEO_LENGTH = 500; //length of the segmentsStream in frames
 
-    private Timer timer;    //timer used to send the images at the video frame rate
+    private Timer timer;    //timer used to send the images at the segmentsStream frame rate
     private byte[] buf;     //buffer used to store the images to send to the client
     private int sendDelay;  //the delay to send images over the wire. Ideally should be
-    //equal to the frame rate of the video file, but may be
+    //equal to the frame rate of the segmentsStream file, but may be
     //adjusted when congestion is detected.
 
     //RTSP variables
@@ -62,7 +63,7 @@ public class Server extends JFrame implements ActionListener {
     //input and output stream filters
     private static BufferedReader RTSPBufferedReader;
     private static BufferedWriter RTSPBufferedWriter;
-    private static String VideoFileName; //video file requested from the client
+    private static String VideoFolderName; //segmentsStream file requested from the client
     private static String RTSPid = UUID.randomUUID().toString(); //ID of the RTSP session
     private int RTSPSeqNb = 0; //Sequence number of RTSP messages within the session
 
@@ -121,39 +122,41 @@ public class Server extends JFrame implements ActionListener {
         imgTranslator = new ImageTranslator(0.8f);
     }
 
-    //------------------------------------
-    //main
-    //------------------------------------
+    /**
+     * Main Function.
+     * @param argv
+     * @throws Exception
+     */
     public static void main(String argv[]) throws Exception
     {
-        //create a Server object
+        // create a Server object
         Server server = new Server();
 
-        //show GUI:
+        // show GUI:
         server.pack();
         server.setVisible(true);
         server.setSize(new Dimension(400, 200));
 
-        //get RTSP socket port from the command line
+        // get RTSP socket port from the command line
         int RTSPport = Integer.parseInt(argv[0]);
         server.RTSP_dest_port = RTSPport;
 
-        //Initiate TCP connection with the client for the RTSP session
+        // Initiate TCP connection with the client for the RTSP session
         ServerSocket listenSocket = new ServerSocket(RTSPport);
         server.RTSPsocket = listenSocket.accept();
         listenSocket.close();
 
-        //Get Client IP address
+        // Get Client IP address
         server.ClientIPAddr = server.RTSPsocket.getInetAddress();
 
-        //Initiate RTSPstate
+        // Initiate RTSPstate
         state = INIT;
 
-        //Set input and output stream filters:
+        // Set input and output stream filters:
         RTSPBufferedReader = new BufferedReader(new InputStreamReader(server.RTSPsocket.getInputStream()) );
         RTSPBufferedWriter = new BufferedWriter(new OutputStreamWriter(server.RTSPsocket.getOutputStream()) );
 
-        //Wait for the SETUP message from the client
+        // Wait for the SETUP message from the client
         int request_type;
         boolean done = false;
         while(!done) {
@@ -162,17 +165,20 @@ public class Server extends JFrame implements ActionListener {
             if (request_type == SETUP) {
                 done = true;
 
-                //update RTSP state
+                // update RTSP state
                 state = READY;
                 System.out.println("New RTSP state: READY");
 
-                //Send response
+                // Send response
                 server.sendResponse();
 
-                //init the VideoStream object:
-                server.video = new VideoStream(new File("movie"));
-
-                //init RTP and RTCP sockets
+                // init the VideoSegmentsStream object:
+                try {
+                    server.segmentsStream = new VideoSegmentsStream(new File(VideoFolderName));
+                } catch (FileNotFoundException fnfe) {
+                    System.err.println("Should specify a directory with video segments in client argument");
+                }
+                // init RTP and RTCP sockets
                 server.RTPsocket = new DatagramSocket();
                 server.RTCPsocket = new DatagramSocket(RTCP_RCV_PORT);
             }
@@ -228,15 +234,15 @@ public class Server extends JFrame implements ActionListener {
     public void actionPerformed(ActionEvent e) {
         byte[] frame;
 
-        //if the current image nb is less than the length of the video
-        if (!video.isFinished()) {
+        //if the current image nb is less than the length of the segmentsStream
+        if (!segmentsStream.isFinished()) {
             if (imagenb < VIDEO_LENGTH * 5) {
                 //update current imagenb
                 imagenb++;
 
                 try {
-                    //get next frame to send from the video, as well as its size
-                    int image_length = video.getnextframe(buf);
+                    //get next frame to send from the segmentsStream, as well as its size
+                    int image_length = segmentsStream.getnextframe(buf);
 
                     //adjust quality of the image if there is congestion detected
                     if (congestionLevel > 0) {
@@ -267,16 +273,24 @@ public class Server extends JFrame implements ActionListener {
                     //update GUI
                     label.setText("Send frame #" + imagenb);
                 }
+                catch (NumberFormatException nfe) {
+                    System.err.println("The video frame should have 5 bytes of length prepended: "+ nfe);
+                    System.exit(1);
+                }
+                catch (IOException ioe) {
+                    System.err.println("IOExceptoin caught: " + ioe);
+                    System.exit(1);
+                }
                 catch(Exception ex) {
-                    System.out.println("Exception caught: "+ex);
-                    System.exit(0);
+                    System.err.println("Exception caught: "+ex);
+                    System.exit(1);
                 }
             }
             if (imagenb % VIDEO_LENGTH == 0) {
-                video.updateSegment();
+                segmentsStream.updateSegment();
             }
         } else {
-            //if we have reached the end of the video segment, stop the timer
+            //if we have reached the end of the segmentsStream segment, stop the timer
             timer.stop();
             rtcpReceiver.stopRcv();
         }
@@ -451,8 +465,8 @@ public class Server extends JFrame implements ActionListener {
                 request_type = DESCRIBE;
 
             if (request_type == SETUP) {
-                //extract VideoFileName from RequestLine
-                VideoFileName = tokens.nextToken();
+                //extract VideoFolderName from RequestLine
+                VideoFolderName = tokens.nextToken();
             }
 
             //parse the SeqNumLine and extract CSeq field
@@ -497,12 +511,12 @@ public class Server extends JFrame implements ActionListener {
 
         // Write the body first so we can get the size later
         writer2.write("v=0" + CRLF);
-        writer2.write("m=video " + RTSP_dest_port + " RTP/AVP " + MJPEG_TYPE + CRLF);
+        writer2.write("m=segmentsStream " + RTSP_dest_port + " RTP/AVP " + MJPEG_TYPE + CRLF);
         writer2.write("a=control:streamid=" + RTSPid + CRLF);
-        writer2.write("a=mimetype:string;\"video/MJPEG\"" + CRLF);
+        writer2.write("a=mimetype:string;\"segmentsStream/MJPEG\"" + CRLF);
         String body = writer2.toString();
 
-        writer1.write("Content-Base: " + VideoFileName + CRLF);
+        writer1.write("Content-Base: " + VideoFolderName + CRLF);
         writer1.write("Content-Type: " + "application/sdp" + CRLF);
         writer1.write("Content-Length: " + body.length() + CRLF);
         writer1.write(body);
