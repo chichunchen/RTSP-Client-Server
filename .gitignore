@@ -51,5 +51,9 @@ fabric.properties
 # Editor-based Rest Client
 .idea/httpRequests
 
+# Maven
+log/
+target/
+
 # Project Base
 RTSP-Client-Server.iml

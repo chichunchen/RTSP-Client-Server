@@ -1,10 +1,5 @@
 package com.chichun.vros.ur;
 
-/*
- * Client
- * usage: java Client [Server hostname] [Server RTSP listening port] [Video file requested]
- */
-
 import java.io.*;
 import java.net.*;
 import java.util.*;
@@ -14,14 +9,19 @@ import java.awt.event.*;
 import javax.swing.*;
 import javax.swing.Timer;
 
+/**
+ * Client
+ * usage: java Client [Server hostname] [Server RTSP listening port] [Video file requested]
+ */
+
 public class Client {
     //GUI
     //----
-    private JFrame f = new JFrame("Client");
+    private JFrame f = new JFrame("VROS Client");
     private JButton setupButton = new JButton("Setup");
     private JButton playButton = new JButton("Play");
     private JButton pauseButton = new JButton("Pause");
-    JButton tearButton;
+    private JButton tearButton;
     private JButton describeButton = new JButton("Session");
     private JPanel mainPanel = new JPanel();
     private JPanel buttonPanel = new JPanel();
@@ -156,6 +156,7 @@ public class Client {
 
     /**
      * Main Function.
+     *
      * @param argv
      * @throws Exception
      */
@@ -507,6 +508,7 @@ public class Client {
 
         /**
          * Synchronize frames based on their sequence number.
+         *
          * @param image
          * @param seqNum
          */
@@ -525,6 +527,7 @@ public class Client {
 
         /**
          * Get the next synchronized frame.
+         *
          * @return
          */
         public Image nextFrame() {

@@ -1,21 +1,20 @@
 package com.chichun.vros.ur;
 
-/*
- * VideoSegmentsStream
- * Currently this class could only be constructed by specifying a folder
- * with video segments in it. The full version is to have multiple fov
- * segments and one full size segment for each time unit.
- *
- * A simple container for the final version could be a vector of vector of
- * (metadata, FileInputStream), which metadata should be the coordination of
- * fov.
- */
-
 import java.io.*;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Vector;
 
+/**
+ * VideoSegmentsStream
+ * Currently this class could only be constructed by specifying a folder
+ * with video segments in it. The full version is to have multiple fov
+ * segments and one full size segment for each time unit.
+ * <p>
+ * A simple container for the final version could be a vector of vector of
+ * (metadata, FileInputStream), which metadata should be the coordination of
+ * fov.
+ */
 
 public class VideoSegmentsStream {
 
@@ -25,6 +24,7 @@ public class VideoSegmentsStream {
 
     /**
      * Constructor for multiple video segment with folder and file name.
+     *
      * @param dir a file object that represent for a directory
      * @throws FileNotFoundException dir should be a existing directory
      */
@@ -44,6 +44,7 @@ public class VideoSegmentsStream {
 
     /**
      * Getnextframe
+     *
      * @param frame a byte stream
      * @return the next frame as an array of byte and the size of the frame
      * @throws Exception
@@ -65,6 +66,7 @@ public class VideoSegmentsStream {
 
     /**
      * Indicate whether all the video segments has been transmitted
+     *
      * @return true if video list is empty, otherwise, false
      */
     public boolean isFinished() {
@@ -81,6 +83,7 @@ public class VideoSegmentsStream {
 
     /**
      * Get current segment number
+     *
      * @return current segment number
      */
     public int getCurrentSegment() {

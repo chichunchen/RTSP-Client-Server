@@ -1,6 +1,5 @@
 package com.chichun.vros.ur;
 
-import java.util.*;
 import java.nio.*;
 
 // RR: Receiver Report RTCP Packet
@@ -30,21 +29,21 @@ class RTCPpacket {
     final static int HEADER_SIZE = 8;
     final static int BODY_SIZE = 24;
 
-    public int Version;			// Version number 2
-    public int Padding;			// Padding of packet
-    public int RC; 				// Reception report count = 1 for one receiver
-    public int PayloadType;		// 201 for Receiver Report
-    public int length;			// 1 source is always 32 bytes: 8 header, 24 body
-    public int Ssrc;			// Ssrc of sender
-    public float fractionLost;	// The fraction of RTP data packets from sender lost since the previous RR packet was sent
-    public int cumLost;			// The total number of RTP data packets from sender that have been lost since the beginning of reception.
-    public int highSeqNb;		// Highest sequence number received
-    public int jitter;			// Not used
-    public int LSR;				// Not used
-    public int DLSR;			// Not used
+    public int Version;            // Version number 2
+    public int Padding;            // Padding of packet
+    public int RC;                // Reception report count = 1 for one receiver
+    public int PayloadType;        // 201 for Receiver Report
+    public int length;            // 1 source is always 32 bytes: 8 header, 24 body
+    public int Ssrc;            // Ssrc of sender
+    public float fractionLost;    // The fraction of RTP data packets from sender lost since the previous RR packet was sent
+    public int cumLost;            // The total number of RTP data packets from sender that have been lost since the beginning of reception.
+    public int highSeqNb;        // Highest sequence number received
+    public int jitter;            // Not used
+    public int LSR;                // Not used
+    public int DLSR;            // Not used
 
-    public byte[] header;	//Bitstream of header
-    public byte[] body;		//Bitstream of the body
+    public byte[] header;    //Bitstream of header
+    public byte[] body;        //Bitstream of the body
 
     // Constructor from field values
     public RTCPpacket(float fractionLost, int cumLost, int highSeqNb) {
@@ -63,14 +62,14 @@ class RTCPpacket {
         header = new byte[HEADER_SIZE];
         body = new byte[BODY_SIZE];
 
-        header[0] = (byte)(Version << 6 | Padding << 5 | RC);
-        header[1] = (byte)(PayloadType & 0xFF);
-        header[2] = (byte)(length >> 8);
-        header[3] = (byte)(length & 0xFF);
-        header[4] = (byte)(Ssrc >> 24);
-        header[5] = (byte)(Ssrc >> 16);
-        header[6] = (byte)(Ssrc >> 8);
-        header[7] = (byte)(Ssrc & 0xFF);
+        header[0] = (byte) (Version << 6 | Padding << 5 | RC);
+        header[1] = (byte) (PayloadType & 0xFF);
+        header[2] = (byte) (length >> 8);
+        header[3] = (byte) (length & 0xFF);
+        header[4] = (byte) (Ssrc >> 24);
+        header[5] = (byte) (Ssrc >> 16);
+        header[6] = (byte) (Ssrc >> 8);
+        header[7] = (byte) (Ssrc & 0xFF);
 
         ByteBuffer bb = ByteBuffer.wrap(body);
         bb.putFloat(fractionLost);
@@ -103,8 +102,7 @@ class RTCPpacket {
     //--------------------------
     //getpacket: returns the packet bitstream and its length
     //--------------------------
-    public int getpacket(byte[] packet)
-    {
+    public int getpacket(byte[] packet) {
         //construct the packet = header + body
         System.arraycopy(header, 0, packet, 0, HEADER_SIZE);
         System.arraycopy(body, 0, packet, HEADER_SIZE, BODY_SIZE);

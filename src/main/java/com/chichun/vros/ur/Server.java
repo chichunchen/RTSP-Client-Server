@@ -1,11 +1,5 @@
 package com.chichun.vros.ur;
 
-/* ------------------
-   Server
-   usage: java Server [RTSP listening port]
-   ---------------------- */
-
-
 import java.io.*;
 import java.net.*;
 import java.awt.*;
@@ -16,6 +10,11 @@ import javax.swing.Timer;
 import java.awt.image.*;
 import javax.imageio.*;
 import javax.imageio.stream.ImageOutputStream;
+
+/**
+ * Server
+ * usage: java Server [RTSP listening port]
+ */
 
 public class Server extends JFrame implements ActionListener {
 
@@ -90,7 +89,7 @@ public class Server extends JFrame implements ActionListener {
     public Server() {
 
         //init Frame
-        super("RTSP Server");
+        super("VROS Server");
 
         //init RTP sending Timer
         sendDelay = FRAME_PERIOD;
@@ -111,7 +110,8 @@ public class Server extends JFrame implements ActionListener {
                 timer.stop();
                 rtcpReceiver.stopRcv();
                 System.exit(0);
-            }});
+            }
+        });
 
         //init the RTCP packet receiver
         rtcpReceiver = new RtcpReceiver(RTCP_PERIOD);
@@ -126,11 +126,11 @@ public class Server extends JFrame implements ActionListener {
 
     /**
      * Main Function.
+     *
      * @param argv
      * @throws Exception
      */
-    public static void main(String argv[]) throws Exception
-    {
+    public static void main(String argv[]) throws Exception {
         // create a Server object
         Server server = new Server();
 
@@ -155,13 +155,13 @@ public class Server extends JFrame implements ActionListener {
         state = INIT;
 
         // Set input and output stream filters:
-        RTSPBufferedReader = new BufferedReader(new InputStreamReader(server.RTSPsocket.getInputStream()) );
-        RTSPBufferedWriter = new BufferedWriter(new OutputStreamWriter(server.RTSPsocket.getOutputStream()) );
+        RTSPBufferedReader = new BufferedReader(new InputStreamReader(server.RTSPsocket.getInputStream()));
+        RTSPBufferedWriter = new BufferedWriter(new OutputStreamWriter(server.RTSPsocket.getOutputStream()));
 
         // Wait for the SETUP message from the client
         int request_type;
         boolean done = false;
-        while(!done) {
+        while (!done) {
             request_type = server.parseRequest(); //blocking
 
             if (request_type == SETUP) {
@@ -187,7 +187,7 @@ public class Server extends JFrame implements ActionListener {
         }
 
         //loop to handle RTSP requests
-        while(true) {
+        while (true) {
             //parse the request
             request_type = server.parseRequest(); //blocking
 
@@ -200,8 +200,7 @@ public class Server extends JFrame implements ActionListener {
                 //update state
                 state = PLAYING;
                 System.out.println("New RTSP state: PLAYING");
-            }
-            else if ((request_type == PAUSE) && (state == PLAYING)) {
+            } else if ((request_type == PAUSE) && (state == PLAYING)) {
                 //send back response
                 server.sendResponse();
                 //stop timer
@@ -210,8 +209,7 @@ public class Server extends JFrame implements ActionListener {
                 //update state
                 state = READY;
                 System.out.println("New RTSP state: READY");
-            }
-            else if (request_type == TEARDOWN) {
+            } else if (request_type == TEARDOWN) {
                 //send back response
                 server.sendResponse();
                 //stop timer
@@ -222,8 +220,7 @@ public class Server extends JFrame implements ActionListener {
                 server.RTPsocket.close();
 
                 System.exit(0);
-            }
-            else if (request_type == DESCRIBE) {
+            } else if (request_type == DESCRIBE) {
                 System.out.println("Received DESCRIBE request");
                 server.sendDescribe();
             }
@@ -255,7 +252,7 @@ public class Server extends JFrame implements ActionListener {
                     }
 
                     //Builds an com.chichun.vros.ur.RTPpacket object containing the frame
-                    RTPpacket rtp_packet = new RTPpacket(MJPEG_TYPE, imagenb, imagenb*FRAME_PERIOD, buf, image_length);
+                    RTPpacket rtp_packet = new RTPpacket(MJPEG_TYPE, imagenb, imagenb * FRAME_PERIOD, buf, image_length);
 
                     //get to total length of the full rtp packet to send
                     int packet_length = rtp_packet.getlength();
@@ -274,17 +271,14 @@ public class Server extends JFrame implements ActionListener {
 
                     //update GUI
                     framesegLabel.setText("Send frame #" + imagenb + ", Segment #" + segmentsStream.getCurrentSegment());
-                }
-                catch (NumberFormatException nfe) {
-                    System.err.println("The video frame should have 5 bytes of length prepended: "+ nfe);
+                } catch (NumberFormatException nfe) {
+                    System.err.println("The video frame should have 5 bytes of length prepended: " + nfe);
                     System.exit(1);
-                }
-                catch (IOException ioe) {
+                } catch (IOException ioe) {
                     System.err.println("IOExceptoin caught: " + ioe);
                     System.exit(1);
-                }
-                catch(Exception ex) {
-                    System.err.println("Exception caught: "+ex);
+                } catch (Exception ex) {
+                    System.err.println("Exception caught: " + ex);
                     System.exit(1);
                 }
             }
@@ -316,7 +310,7 @@ public class Server extends JFrame implements ActionListener {
 
             //adjust the send rate
             if (prevLevel != congestionLevel) {
-                sendDelay = FRAME_PERIOD + congestionLevel * (int)(FRAME_PERIOD * 0.1);
+                sendDelay = FRAME_PERIOD + congestionLevel * (int) (FRAME_PERIOD * 0.1);
                 timer.setDelay(sendDelay);
                 prevLevel = congestionLevel;
                 System.out.println("Send delay changed to: " + sendDelay);
@@ -357,25 +351,19 @@ public class Server extends JFrame implements ActionListener {
                 fractionLost = rtcpPkt.fractionLost;
                 if (fractionLost >= 0 && fractionLost <= 0.01) {
                     congestionLevel = 0;    //less than 0.01 assume negligible
-                }
-                else if (fractionLost > 0.01 && fractionLost <= 0.25) {
+                } else if (fractionLost > 0.01 && fractionLost <= 0.25) {
                     congestionLevel = 1;
-                }
-                else if (fractionLost > 0.25 && fractionLost <= 0.5) {
+                } else if (fractionLost > 0.25 && fractionLost <= 0.5) {
                     congestionLevel = 2;
-                }
-                else if (fractionLost > 0.5 && fractionLost <= 0.75) {
+                } else if (fractionLost > 0.5 && fractionLost <= 0.75) {
                     congestionLevel = 3;
-                }
-                else {
+                } else {
                     congestionLevel = 4;
                 }
-            }
-            catch (InterruptedIOException iioe) {
+            } catch (InterruptedIOException iioe) {
                 System.out.println("Nothing to read");
-            }
-            catch (IOException ioe) {
-                System.out.println("Exception caught: "+ioe);
+            } catch (IOException ioe) {
+                System.out.println("Exception caught: " + ioe);
             }
         }
 
@@ -396,7 +384,7 @@ public class Server extends JFrame implements ActionListener {
         private float compressionQuality;
         private ByteArrayOutputStream baos;
         private BufferedImage image;
-        private Iterator<ImageWriter>writers;
+        private Iterator<ImageWriter> writers;
         private ImageWriter writer;
         private ImageWriteParam param;
         private ImageOutputStream ios;
@@ -405,11 +393,11 @@ public class Server extends JFrame implements ActionListener {
             compressionQuality = cq;
 
             try {
-                baos =  new ByteArrayOutputStream();
+                baos = new ByteArrayOutputStream();
                 ios = ImageIO.createImageOutputStream(baos);
 
                 writers = ImageIO.getImageWritersByFormatName("jpeg");
-                writer = (ImageWriter)writers.next();
+                writer = (ImageWriter) writers.next();
                 writer.setOutput(ios);
 
                 param = writer.getDefaultWriteParam();
@@ -417,7 +405,7 @@ public class Server extends JFrame implements ActionListener {
                 param.setCompressionQuality(compressionQuality);
 
             } catch (Exception ex) {
-                System.out.println("Exception caught: "+ex);
+                System.out.println("Exception caught: " + ex);
                 System.exit(0);
             }
         }
@@ -428,7 +416,7 @@ public class Server extends JFrame implements ActionListener {
                 image = ImageIO.read(new ByteArrayInputStream(imageBytes));
                 writer.write(null, new IIOImage(image, null, null), param);
             } catch (Exception ex) {
-                System.out.println("Exception caught: "+ex);
+                System.out.println("Exception caught: " + ex);
                 System.exit(0);
             }
             return baos.toByteArray();
@@ -485,25 +473,23 @@ public class Server extends JFrame implements ActionListener {
             tokens = new StringTokenizer(LastLine);
             if (request_type == SETUP) {
                 //extract RTP_dest_port from LastLine
-                for (int i=0; i<3; i++)
+                for (int i = 0; i < 3; i++)
                     tokens.nextToken(); //skip unused stuff
                 RTP_dest_port = Integer.parseInt(tokens.nextToken());
-            }
-            else if (request_type == DESCRIBE) {
+            } else if (request_type == DESCRIBE) {
                 tokens.nextToken();
                 String describeDataType = tokens.nextToken();
-            }
-            else {
+            } else {
                 //otherwise LastLine will be the SessionId line
                 tokens.nextToken(); //skip Session:
                 RTSPid = tokens.nextToken();
             }
-        } catch(Exception ex) {
-            System.out.println("Exception caught: "+ex);
+        } catch (Exception ex) {
+            System.out.println("Exception caught: " + ex);
             System.exit(0);
         }
 
-        return(request_type);
+        return (request_type);
     }
 
     // Creates a DESCRIBE response string in SDP format for current media
@@ -531,13 +517,13 @@ public class Server extends JFrame implements ActionListener {
     //------------------------------------
     private void sendResponse() {
         try {
-            RTSPBufferedWriter.write("RTSP/1.0 200 OK"+CRLF);
-            RTSPBufferedWriter.write("CSeq: "+RTSPSeqNb+CRLF);
-            RTSPBufferedWriter.write("Session: "+RTSPid+CRLF);
+            RTSPBufferedWriter.write("RTSP/1.0 200 OK" + CRLF);
+            RTSPBufferedWriter.write("CSeq: " + RTSPSeqNb + CRLF);
+            RTSPBufferedWriter.write("Session: " + RTSPid + CRLF);
             RTSPBufferedWriter.flush();
             System.out.println("RTSP Server - Sent response to Client.");
-        } catch(Exception ex) {
-            System.out.println("Exception caught: "+ex);
+        } catch (Exception ex) {
+            System.out.println("Exception caught: " + ex);
             System.exit(0);
         }
     }
@@ -545,13 +531,13 @@ public class Server extends JFrame implements ActionListener {
     private void sendDescribe() {
         String des = describe();
         try {
-            RTSPBufferedWriter.write("RTSP/1.0 200 OK"+CRLF);
-            RTSPBufferedWriter.write("CSeq: "+RTSPSeqNb+CRLF);
+            RTSPBufferedWriter.write("RTSP/1.0 200 OK" + CRLF);
+            RTSPBufferedWriter.write("CSeq: " + RTSPSeqNb + CRLF);
             RTSPBufferedWriter.write(des);
             RTSPBufferedWriter.flush();
             System.out.println("RTSP Server - Sent response to Client.");
-        } catch(Exception ex) {
-            System.out.println("Exception caught: "+ex);
+        } catch (Exception ex) {
+            System.out.println("Exception caught: " + ex);
             System.exit(0);
         }
     }
