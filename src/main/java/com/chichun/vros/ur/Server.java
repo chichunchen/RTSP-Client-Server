@@ -1,5 +1,8 @@
 package com.chichun.vros.ur;
 
+import org.jcodec.api.FrameGrab;
+import org.jcodec.common.model.Picture;
+
 import java.io.*;
 import java.net.*;
 import java.awt.*;
@@ -87,6 +90,8 @@ public class Server extends JFrame implements ActionListener {
     //Constructor
     //--------------------------------
     public Server() {
+
+        // try jcodec
 
         //init Frame
         super("VROS Server");
@@ -239,6 +244,7 @@ public class Server extends JFrame implements ActionListener {
                 //update current imagenb
                 imagenb++;
 
+                // TODO send video segment instead of a single frame
                 try {
                     //get next frame to send from the segmentsStream, as well as its size
                     int image_length = segmentsStream.getnextframe(buf);
@@ -251,7 +257,7 @@ public class Server extends JFrame implements ActionListener {
                         System.arraycopy(frame, 0, buf, 0, image_length);
                     }
 
-                    //Builds an com.chichun.vros.ur.RTPpacket object containing the frame
+                    //Builds an RTPpacket object containing the frame
                     RTPpacket rtp_packet = new RTPpacket(MJPEG_TYPE, imagenb, imagenb * FRAME_PERIOD, buf, image_length);
 
                     //get to total length of the full rtp packet to send
