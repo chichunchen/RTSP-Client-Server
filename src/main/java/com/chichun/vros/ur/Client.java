@@ -1,5 +1,12 @@
 package com.chichun.vros.ur;
 
+import org.jcodec.api.FrameGrab;
+import org.jcodec.api.JCodecException;
+import org.jcodec.common.io.NIOUtils;
+import org.jcodec.common.model.Picture;
+import org.jcodec.scale.AWTUtil;
+
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.*;
 import java.util.*;
@@ -128,14 +135,14 @@ public class Client {
         mainPanel.add(statLabel1);
         mainPanel.add(statLabel2);
         mainPanel.add(statLabel3);
-        iconLabel.setBounds(0, 0, 380, 280);
-        buttonPanel.setBounds(0, 280, 380, 50);
-        statLabel1.setBounds(0, 330, 380, 20);
-        statLabel2.setBounds(0, 350, 380, 20);
-        statLabel3.setBounds(0, 370, 380, 20);
+        iconLabel.setBounds(0, 0, 1280, 600);
+        buttonPanel.setBounds(0, 600, 380, 40);
+        statLabel1.setBounds(0, 640, 380, 20);
+        statLabel2.setBounds(0, 660, 380, 20);
+        statLabel3.setBounds(0, 680, 380, 20);
 
         f.getContentPane().add(mainPanel, BorderLayout.CENTER);
-        f.setSize(new Dimension(380, 420));
+        f.setSize(new Dimension(1280, 720));
         f.setVisible(true);
 
         //init timer
@@ -193,12 +200,36 @@ public class Client {
     //Handler for buttons
     //------------------------------------
 
+    Vector<Picture> picvec;
+
     /**
      * Handler for Setup button.
      */
     class setupButtonListener implements ActionListener {
 
         public void actionPerformed(ActionEvent e) {
+
+            // try decode from storage
+            String base = "storage/rhino/output_";
+            picvec = new Vector<>();
+            boolean odd = false;
+            for (int i = 1; i < 50; i++) {
+                String filename = base + Integer.toString(i);
+                File file = new File(filename + ".mp4");
+                FrameGrab grab = null;
+                try {
+                    grab = FrameGrab.createFrameGrab(NIOUtils.readableChannel(file));
+                    Picture picture;
+                    while (null != (picture = grab.getNativeFrame())) {
+                        System.out.println(picture.getWidth() + "x" + picture.getHeight() + " " + picture.getColor());
+                        picvec.add(picture);
+                    }
+                } catch (JCodecException je1) {
+                    je1.printStackTrace();
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+            }
 
             System.out.println("Setup Button pressed !");
             if (state == INIT) {
@@ -363,63 +394,73 @@ public class Client {
      * Handler for timer. Start happens when the play button is pushed, while stop when the pause and close button
      * has been pushed.
      */
+    int nb = 0;
     class timerListener implements ActionListener {
 
         public void actionPerformed(ActionEvent e) {
-
-            // Construct a DatagramPacket to receive data from the UDP socket
-            rcvdp = new DatagramPacket(buf, buf.length);
-
-            try {
-                // receive the DP from the socket, save time for stats
-                RTPsocket.receive(rcvdp);
-
-                double curTime = System.currentTimeMillis();
-                statTotalPlayTime += curTime - statStartTime;
-                statStartTime = curTime;
-
-                // create an RTPpacket object from the DP
-                RTPpacket rtp_packet = new RTPpacket(rcvdp.getData(), rcvdp.getLength());
-                int highestSeqNb = rtp_packet.getsequencenumber();
-
-                // print important header fields of the RTP packet received:
-                System.out.println("Got RTP packet with SeqNum # " + highestSeqNb
-                        + " TimeStamp " + rtp_packet.gettimestamp() + " ms, of type "
-                        + rtp_packet.getpayloadtype());
-
-                // print header bitstream:
-                rtp_packet.printheader();
-
-                // get the payload bitstream from the RTPpacket object
-                int payload_length = rtp_packet.getpayload_length();
-                byte[] payload = new byte[payload_length];
-                rtp_packet.getpayload(payload);
-
-                // compute stats and update the label in GUI
-                statExpRtpNb++;
-                if (highestSeqNb > statHighSeqNb) {
-                    statHighSeqNb = highestSeqNb;
-                }
-                if (statExpRtpNb != highestSeqNb) {
-                    statCumLost++;
-                }
-                statDataRate = statTotalPlayTime == 0 ? 0 : (statTotalBytes / (statTotalPlayTime / 1000.0));
-                statFractionLost = (float) statCumLost / statHighSeqNb;
-                statTotalBytes += payload_length;
-                updateStatsLabel();
-
-                // get an Image object from the payload bitstream
-                Toolkit toolkit = Toolkit.getDefaultToolkit();
-                fsynch.addFrame(toolkit.createImage(payload, 0, payload_length), highestSeqNb);
-
-                // display the image as an ImageIcon object
-                icon = new ImageIcon(fsynch.nextFrame());
+            System.out.println(nb + ", " + picvec.size());
+            if (picvec.size() > nb) {
+                BufferedImage bufferedImage = AWTUtil.toBufferedImage(picvec.get(nb));
+                icon = new ImageIcon(bufferedImage);
+                System.out.println(icon.toString());
                 iconLabel.setIcon(icon);
-            } catch (InterruptedIOException iioe) {
-                System.out.println("Nothing to read");
-            } catch (IOException ioe) {
-                System.out.println("Exception caught: " + ioe);
+                nb++;
             }
+
+//            // Construct a DatagramPacket to receive data from the UDP socket
+//            rcvdp = new DatagramPacket(buf, buf.length);
+//\
+//            // TODO receive encoded video segments from server, should then decode and render the images on the panel
+//            try {
+//                // receive the DP from the socket, save time for stats
+//                RTPsocket.receive(rcvdp);
+//
+//                double curTime = System.currentTimeMillis();
+//                statTotalPlayTime += curTime - statStartTime;
+//                statStartTime = curTime;
+//
+//                // create an RTPpacket object from the DP
+//                RTPpacket rtp_packet = new RTPpacket(rcvdp.getData(), rcvdp.getLength());
+//                int highestSeqNb = rtp_packet.getsequencenumber();
+//
+//                // print important header fields of the RTP packet received:
+//                System.out.println("Got RTP packet with SeqNum # " + highestSeqNb
+//                        + " TimeStamp " + rtp_packet.gettimestamp() + " ms, of type "
+//                        + rtp_packet.getpayloadtype());
+//
+//                // print header bitstream:
+//                rtp_packet.printheader();
+//
+//                // get the payload bitstream from the RTPpacket object
+//                int payload_length = rtp_packet.getpayload_length();
+//                byte[] payload = new byte[payload_length];
+//                rtp_packet.getpayload(payload);
+//
+//                // compute stats and update the label in GUI
+//                statExpRtpNb++;
+//                if (highestSeqNb > statHighSeqNb) {
+//                    statHighSeqNb = highestSeqNb;
+//                }
+//                if (statExpRtpNb != highestSeqNb) {
+//                    statCumLost++;
+//                }
+//                statDataRate = statTotalPlayTime == 0 ? 0 : (statTotalBytes / (statTotalPlayTime / 1000.0));
+//                statFractionLost = (float) statCumLost / statHighSeqNb;
+//                statTotalBytes += payload_length;
+//                updateStatsLabel();
+//
+//                // TODO decode received video segment
+//                // get an Image object from the payload bitstream
+//                Toolkit toolkit = Toolkit.getDefaultToolkit();
+//                fsynch.addFrame(toolkit.createImage(payload, 0, payload_length), highestSeqNb);
+//                // display the image as an ImageIcon object
+//                icon = new ImageIcon(fsynch.nextFrame());
+//                iconLabel.setIcon(icon);
+//            } catch (InterruptedIOException iioe) {
+//                System.out.println("Nothing to read");
+//            } catch (IOException ioe) {
+//                System.out.println("Exception caught: " + ioe);
+//            }
         }
     }
 

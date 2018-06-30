@@ -91,8 +91,6 @@ public class Server extends JFrame implements ActionListener {
     //--------------------------------
     public Server() {
 
-        // try jcodec
-
         //init Frame
         super("VROS Server");
 
